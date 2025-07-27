@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenThumb - Plants & Fertilizers Store</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <style>
+        .animate-card:hover {
+            transform: translateY(-5px);
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #7bc950 0%, #3a7d44 100%);
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #4CAF50;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex flex-col" id="app">
+        <!-- Navigation -->
+        <nav class="bg-white shadow-lg">
+            <div class="container mx-auto px-4 py-3">
+                <div class="flex justify-between items-center">
+                    <div class="flex space-x-4">
+                        <div>
+                            <a href="#" class="flex items-center py-2 px-2 text-gray-700 hover:text-green-600">
+                                <img src="https://placehold.co/40x40" alt="GreenThumb logo - a simple leaf icon in green" class="h-8 w-8 mr-2">
+                                <span class="font-semibold text-lg">GreenThumb</span>
+                            </a>
+                        </div>
+                        <div class="hidden md:flex items-center space-x-1">
+                            <a href="#products" class="py-4 px-3 text-gray-700 hover:text-green-600">Products</a>
+                            <a href="#plants" class="py-4 px-3 text-gray-700 hover:text-green-600">Plants</a>
+                            <a href="#fertilizers" class="py-4 px-3 text-gray-700 hover:text-green-600">Fertilizers</a>
+                            <a href="#admin" class="py-4 px-3 text-gray-700 hover:text-green-600">Admin Panel</a>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button id="cartBtn" class="py-2 px-3 relative">
+                            <i class="fas fa-shopping-cart text-gray-700 hover:text-green-600 text-xl"></i>
+                            <span id="cartCount" class="absolute -top-1 -right-1 bg-green-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+                        </button>
+                        <button id="loginBtn" class="py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 transition duration-300">
+                            Login
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <section class="gradient-bg text-white">
+            <div class="container mx-auto px-4 py-20 md:py-32">
+                <div class="flex flex-col md:flex-row items-center">
+                    <div class="md:w-1/2 mb-10 md:mb-0">
+                        <h1 class="text-4xl md:text-5xl font-bold mb-4">Bring Nature to Your Home</h1>
+                        <p class="text-xl mb-6">Find the perfect plants and fertilizers for your garden.</p>
+                        <a href="#products" class="bg-white text-green-600 px-6 py-3 rounded-full font-semibold hover:bg-gray-100 transition duration-300 inline-block">Shop Now</a>
+                    </div>
+                    <div class="md:w-1/2 flex justify-center">
+                        <img src="https://placehold.co/600x400" alt="Beautiful indoor plants arrangement in a modern living room setting" class="rounded-lg shadow-xl">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Products Section -->
+        <section id="products" class="container mx-auto px-4 py-16">
+            <h2 class="text-3xl font-bold text-center mb-12 text-gray-800">Our Products</h2>
+            <div class="flex justify-center mb-8">
+                <div class="inline-flex rounded-md shadow">
+                    <button id="allProductsBtn" class="px-4 py-2 rounded-l-md bg-green-600 text-white font-medium">All</button>
+                    <button id="plantsBtn" class="px-4 py-2 border-t border-b border-green-600 text-green-600 font-medium">Plants</button>
+                    <button id="fertilizersBtn" class="px-4 py-2 rounded-r-md border border-green-600 text-green-600 font-medium">Fertilizers</button>
+                </div>
+            </div>
+            <div id="productsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                <!-- Products will be loaded here dynamically -->
+                <div class="text-center py-8">
+                    <div class="loading-spinner"></div>
+                    <p class="mt-2">Loading products...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Admin Panel Section (Hidden by default) -->
+        <section id="adminPanel" class="container mx-auto px-4 py-16 hidden">
+            <h2 class="text-3xl font-bold text-center mb-12 text-gray-800">Admin Panel</h2>
+            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h3 class="text-xl font-semibold mb-4">Add New Product</h3>
+                <form id="productForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <input type="hidden" id="productId">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                        <input type="text" id="name" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-600" required>
+                    </div>
+                    <div>
+                        <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Price (IDR)</label>
+                        <input type="number" id="price" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-600" required>
+                    </div>
+                    <div>
+                        <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                        <select id="category" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-600" required>
+                            <option value="">Select Category</option>
+                            <option value="plant">Plant</option>
+                            <option value="fertilizer">Fertilizer</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="stock" class="block text-sm font-medium text-gray-700 mb-1">Stock</label>
+                        <input type="number" id="stock" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-600" required>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea id="description" rows="3" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"></textarea>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="imageUrl" class="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                        <input type="text" id="imageUrl" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-600" value="https://placehold.co/600x400">
+                    </div>
+                    <div class="flex space-x-3 md:col-span-2">
+                        <button type="submit" id="saveBtn" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition duration-300">Save Product</button>
+                        <button type="button" id="resetBtn" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition duration-300">Reset Form</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold mb-4">Products List</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminProductsList" class="bg-white divide-y divide-gray-200">
+                            <!-- Admin products list will be loaded here dynamically -->
+                            <tr>
+                                <td colspan="6" class="px-6 py-4 text-center">
+                                    <div class="loading-spinner inline-block"></div>
+                                    <p class="mt-2">Loading products...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Login Modal -->
+        <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">Admin Login</h3>
+                    <button id="closeLoginModal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form id="loginForm">
+                    <div class="mb-4">
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="email" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-600" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="password" id="password" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-600" required>
+                    </div>
+                    <button type="submit" class="w-full px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition duration-300">
+                        Login
+                    </button>
+                </form>
+                <p id="loginError" class="text-red-500 mt-4 hidden"></p>
+            </div>
+        </div>
+
+        <!-- Cart Sidebar -->
+        <div id="cartSidebar" class="fixed inset-y-0 right-0 w-full md:w-96 bg-white shadow-lg transform translate-x-full transition-transform duration-300 ease-in-out z-40 overflow-y-auto custom-scroll">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-semibold">Your Cart</h3>
+                    <button id="closeCartBtn" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div id="cartItems" class="space-y-4">
+                    <!-- Cart items will be loaded here dynamically -->
+                    <p class="text-gray-500 text-center py-8">Your cart is empty</p>
+                </div>
+                <div class="mt-6 border-t pt-4">
+                    <div class="flex justify-between mb-2">
+                        <span class="font-medium">Subtotal:</span>
+                        <span id="cartSubtotal" class="font-medium">IDR 0</span>
+                    </div>
+                    <button id="checkoutBtn" class="w-full px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition duration-300 mt-4">
+                        Checkout
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="cartOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-30"></div>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white mt-auto">
+            <div class="container mx-auto px-4 py-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">GreenThumb</h3>
+                        <p class="text-gray-300">Your one-stop shop for premium plants and high-quality fertilizers.</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                        <ul class="space-y-2">
+                            <li><a href="#products" class="text-gray-300 hover:text-green-400 transition duration-300">Products</a></li>
+                            <li><a href="#plants" class="text-gray-300 hover:text-green-400 transition duration-300">Plants</a></li>
+                            <li><a href="#fertilizers" class="text-gray-300 hover:text-green-400 transition duration-300">Fertilizers</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">Contact Us</h3>
+                        <p class="text-gray-300">Email: info@greenthumb.com</p>
+                        <p class="text-gray-300">Phone: (123) 456-7890</p>
+                    </div>
+                </div>
+                <div class="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400">
+                    <p>&copy; 2023 GreenThumb. All rights reserved.</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+           apiKey: "AIzaSyAWftkTriG6_QhvVTRFQ0-wJ3QLqscPJyQ",
+  authDomain: "tanam-a2822.firebaseapp.com",
+  databaseURL: "https://tanam-a2822-default-rtdb.firebaseio.com",
+  projectId: "tanam-a2822",
+  storageBucket: "tanam-a2822.firebasestorage.app",
+  messagingSenderId: "786090362959",
+  appId: "1:786090362959:web:1c44626efa6e63da24c23a",
+  measurementId: "G-RJQB5J2990"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+
+        // DOM Elements
+        const productsContainer = document.getElementById('productsContainer');
+        const adminProductsList = document.getElementById('adminProductsList');
+        const productForm = document.getElementById('productForm');
+        const adminPanel = document.getElementById('adminPanel');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginModal = document.getElementById('loginModal');
+        const closeLoginModal = document.getElementById('closeLoginModal');
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
+        const cartBtn = document.getElementById('cartBtn');
+        const cartSidebar = document.getElementById('cartSidebar');
+        const closeCartBtn = document.getElementById('closeCartBtn');
+        const cartOverlay = document.getElementById('cartOverlay');
+        const cartItems = document.getElementById('cartItems');
+        const cartSubtotal = document.getElementById('cartSubtotal');
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        const cartCount = document.getElementById('cartCount');
+        const allProductsBtn = document.getElementById('allProductsBtn');
+        const plantsBtn = document.getElementById('plantsBtn');
+        const fertilizersBtn = document.getElementById('fertilizersBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // State variables
+        let currentUser = null;
+        let products = [];
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+        // Initialize the app
+        function initApp() {
+            auth.onAuthStateChanged(user => {
+                currentUser = user;
+                if (user) {
+                    loginBtn.textContent = 'Logout';
+                    adminPanel.classList.remove('hidden');
+                    fetchProducts();
+                } else {
+                    loginBtn.textContent = 'Login';
+                    adminPanel.classList.add('hidden');
+                }
+            });
+            
+            fetchProducts();
+            updateCartUI();
+            
+            // Event listeners
+            loginBtn.addEventListener('click', toggleLogin);
+            closeLoginModal.addEventListener('click', () => loginModal.classList.add('hidden'));
+            loginForm.addEventListener('submit', handleLogin);
+            cartBtn.addEventListener('click', toggleCart);
+            closeCartBtn.addEventListener('click', toggleCart);
+            cartOverlay.addEventListener('click', toggleCart);
+            productForm.addEventListener('submit', handleProductFormSubmit);
+            resetBtn.addEventListener('click', resetProductForm);
+            allProductsBtn.addEventListener('click', () => filterProducts('all'));
+            plantsBtn.addEventListener('click', () => filterProducts('plant'));
+            fertilizersBtn.addEventListener('click', () => filterProducts('fertilizer'));
+            checkoutBtn.addEventListener('click', handleCheckout);
+        }
+
+        // Fetch products from Firebase
+        function fetchProducts() {
+            database.ref('products').on('value', snapshot => {
+                products = [];
+                snapshot.forEach(childSnapshot => {
+                    products.push({
+                        id: childSnapshot.key,
+                        ...childSnapshot.val()
+                    });
+                });
+                
+                renderProducts(products);
+                
+                if (currentUser) {
+                    renderAdminProductsList(products);
+                }
+            });
+        }
+
+        // Render products to the main page
+        function renderProducts(productsToRender) {
+            productsContainer.innerHTML = '';
+            
+            if (productsToRender.length === 0) {
+                productsContainer.innerHTML = '<p class="text-gray-500 text-center col-span-4 py-8">No products found</p>';
+                return;
+            }
+            
+            productsToRender.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = 'bg-white rounded-lg shadow-md overflow-hidden animate-card';
+                productCard.innerHTML = `
+                    <div class="relative">
+                        <img src="${product.imageUrl || 'https://placehold.co/600x400'}" alt="${product.name} - ${product.category === 'plant' ? 'A beautiful plant' : 'High-quality fertilizer'}" class="w-full h-48 object-cover">
+                        ${product.stock <= 0 ? '<div class="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-xs">Out of Stock</div>' : ''}
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-lg mb-1">${product.name}</h3>
+                        <p class="text-gray-600 text-sm mb-2">${product.category.charAt(0).toUpperCase() + product.category.slice(1)}</p>
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-green-600">IDR ${product.price.toLocaleString()}</span>
+                            <button data-id="${product.id}" class="add-to-cart-btn px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition duration-300 ${product.stock <= 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${product.stock <= 0 ? 'disabled' : ''}>
+                                <i class="fas fa-cart-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                productsContainer.appendChild(productCard);
+            });
+            
+            // Add event listeners to all add-to-cart buttons
+            document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const productId = e.currentTarget.getAttribute('data-id');
+                    addToCart(productId);
+                });
+            });
+        }
+
+        // Render products list for admin
+        function renderAdminProductsList(productsToRender) {
+            adminProductsList.innerHTML = '';
+            
+            if (productsToRender.length === 0) {
+                adminProductsList.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                            No products found. Add your first product!
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            productsToRender.forEach(product => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <img src="${product.imageUrl || 'https://placehold.co/60x60'}" alt="${product.name}" class="h-10 w-10 rounded-full object-cover">
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${product.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${product.category.charAt(0).toUpperCase() + product.category.slice(1)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">IDR ${product.price.toLocaleString()}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${product.stock}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button data-id="${product.id}" class="text-green-600 hover:text-green-900 mr-2 edit-product-btn">Edit</button>
+                        <button data-id="${product.id}" class="text-red-600 hover:text-red-900 delete-product-btn">Delete</button>
+                    </td>
+                `;
+                adminProductsList.appendChild(tr);
+            });
+            
+            // Add event listeners to edit and delete buttons
+            document.querySelectorAll('.edit-product-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const productId = e.currentTarget.getAttribute('data-id');
+                    editProduct(productId);
+                });
+            });
+            
+            document.querySelectorAll('.delete-product-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const productId = e.currentTarget.getAttribute('data-id');
+                    if (confirm('Are you sure you want to delete this product?')) {
+                        deleteProduct(productId);
+                    }
+                });
+            });
+        }
+
+        // Filter products by category
+        function filterProducts(category) {
+            if (category === 'all') {
+                renderProducts(products);
+                allProductsBtn.classList.add('bg-green-600', 'text-white');
+                allProductsBtn.classList.remove('border', 'border-green-600', 'text-green-600');
+                plantsBtn.classList.remove('bg-green-600', 'text-white');
+                plantsBtn.classList.add('border-t', 'border-b', 'border-green-600', 'text-green-600');
+                fertilizersBtn.classList.remove('bg-green-600', 'text-white');
+                fertilizersBtn.classList.add('border', 'border-green-600', 'text-green-600');
+                return;
+            }
+            
+            const filteredProducts = products.filter(product => product.category === category);
+            renderProducts(filteredProducts);
+            
+            if (category === 'plant') {
+                plantsBtn.classList.add('bg-green-600', 'text-white');
+                plantsBtn.classList.remove('border-t', 'border-b', 'border-green-600', 'text-green-600');
+                allProductsBtn.classList.remove('bg-green-600', 'text-white');
+                allProductsBtn.classList.add('border', 'border-green-600', 'text-green-600');
+                fertilizersBtn.classList.remove('bg-green-600', 'text-white');
+                fertilizersBtn.classList.add('border', 'border-green-600', 'text-green-600');
+            } else if (category === 'fertilizer') {
+                fertilizersBtn.classList.add('bg-green-600', 'text-white');
+                fertilizersBtn.classList.remove('border', 'border-green-600', 'text-green-600');
+                allProductsBtn.classList.remove('bg-green-600', 'text-white');
+                allProductsBtn.classList.add('border', 'border-green-600', 'text-green-600');
+                plantsBtn.classList.remove('bg-green-600', 'text-white');
+                plantsBtn.classList.add('border-t', 'border-b', 'border-green-600', 'text-green-600');
+            }
+        }
+
+        // Handle product form submission
+        function handleProductFormSubmit(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('productId').value;
+            const name = document.getElementById('name').value;
+            const price = parseFloat(document.getElementById('price').value);
+            const category = document.getElementById('category').value;
+            const stock = parseInt(document.getElementById('stock').value);
+            const description = document.getElementById('description').value;
+            const imageUrl = document.getElementById('imageUrl').value;
+            
+            const productData = {
+                name,
+                price,
+                category,
+                stock,
+                description,
+                imageUrl: imageUrl || 'https://placehold.co/600x400'
+            };
+            
+            if (id) {
+                // Update existing product
+                database.ref('products/' + id).update(productData)
+                    .then(() => {
+                        alert('Product updated successfully!');
+                        resetProductForm();
+                    })
+                    .catch(error => {
+                        console.error('Error updating product:', error);
+                        alert('Error updating product. Please try again.');
+                    });
+            } else {
+                // Add new product
+                database.ref('products').push(productData)
+                    .then(() => {
+                        alert('Product added successfully!');
+                        resetProductForm();
+                    })
+                    .catch(error => {
+                        console.error('Error adding product:', error);
+                        alert('Error adding product. Please try again.');
+                    });
+            }
+        }
+
+        // Edit product
+        function editProduct(productId) {
+            const product = products.find(p => p.id === productId);
+            if (product) {
+                document.getElementById('productId').value = product.id;
+                document.getElementById('name').value = product.name;
+                document.getElementById('price').value = product.price;
+                document.getElementById('category').value = product.category;
+                document.getElementById('stock').value = product.stock;
+                document.getElementById('description').value = product.description || '';
+                document.getElementById('imageUrl').value = product.imageUrl || 'https://placehold.co/600x400';
+                
+                saveBtn.textContent = 'Update Product';
+                window.scrollTo({
+                    top: document.getElementById('productForm').offsetTop - 20,
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+        // Delete product
+        function deleteProduct(productId) {
+            database.ref('products/' + productId).remove()
+                .then(() => {
+                    alert('Product deleted successfully!');
+                })
+                .catch(error => {
+                    console.error('Error deleting product:', error);
+                    alert('Error deleting product. Please try again.');
+                });
+        }
+
+        // Reset product form
+        function resetProductForm() {
+            productForm.reset();
+            document.getElementById('productId').value = '';
+            saveBtn.textContent = 'Save Product';
+            document.getElementById('imageUrl').value = 'https://placehold.co/600x400';
+        }
+
+        // Toggle login/logout
+        function toggleLogin() {
+            if (currentUser) {
+                // Logout
+                auth.signOut()
+                    .then(() => {
+                        alert('Logged out successfully');
+                        currentUser = null;
+                        loginBtn.textContent = 'Login';
+                        adminPanel.classList.add('hidden');
+                    })
+                    .catch(error => {
+                        console.error('Logout error:', error);
+                    });
+            } else {
+                // Show login modal
+                loginModal.classList.remove('hidden');
+                loginError.classList.add('hidden');
+            }
+        }
+
+        // Handle login
+        function handleLogin(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    loginModal.classList.add('hidden');
+                    loginForm.reset();
+                })
+                .catch(error => {
+                    loginError.textContent = error.message;
+                    loginError.classList.remove('hidden');
+                });
+        }
+
+        // Add to cart
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+            
+            if (product.stock <= 0) {
+                alert('This product is out of stock!');
+                return;
+            }
+            
+            const existingItem = cart.find(item => item.id === productId);
+            
+            if (existingItem) {
+                if (existingItem.quantity >= product.stock) {
+                    alert(`Only ${product.stock} items available in stock!`);
+                    return;
+                }
+                existingItem.quantity++;
+            } else {
+                cart.push({
+                    id: productId,
+                    name: product.name,
+                    price: product.price,
+                    quantity: 1,
+                    imageUrl: product.imageUrl || 'https://placehold.co/600x400'
+                });
+            }
+            
+            updateCart();
+            toggleCart();
+        }
+
+        // Update cart in localStorage and UI
+        function updateCart() {
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartUI();
+        }
+
+        // Update cart UI
+        function updateCartUI() {
+            if (cart.length === 0) {
+                cartItems.innerHTML = '<p class="text-gray-500 text-center py-8">Your cart is empty</p>';
+                cartSubtotal.textContent = 'IDR 0';
+                cartCount.classList.add('hidden');
+            } else {
+                cartItems.innerHTML = '';
+                let subtotal = 0;
+                
+                cart.forEach(item => {
+                    const cartItem = document.createElement('div');
+                    cartItem.className = 'flex items-center border-b pb-4';
+                    cartItem.innerHTML = `
+                        <div class="flex-shrink-0 mr-4">
+                            <img src="${item.imageUrl}" alt="${item.name}" class="w-16 h-16 object-cover rounded">
+                        </div>
+                        <div class="flex-grow">
+                            <h4 class="font-medium">${item.name}</h4>
+                            <p class="text-sm text-gray-500">IDR ${item.price.toLocaleString()} x ${item.quantity}</p>
+                        </div>
+                        <div class="flex items-center">
+                            <button class="decrease-qty text-gray-500 px-2 py-1" data-id="${item.id}">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <span class="mx-2">${item.quantity}</span>
+                            <button class="increase-qty text-gray-500 px-2 py-1" data-id="${item.id}">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button class="remove-item text-red-500 ml-4 px-2 py-1" data-id="${item.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                    cartItems.appendChild(cartItem);
+                    
+                    subtotal += item.price * item.quantity;
+                });
+                
+                cartSubtotal.textContent = `IDR ${subtotal.toLocaleString()}`;
+                
+                // Update cart count badge
+                const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+                cartCount.textContent = totalItems;
+                cartCount.classList.remove('hidden');
+            }
+            
+            // Add event listeners to cart item buttons
+            document.querySelectorAll('.increase-qty').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const productId = e.currentTarget.getAttribute('data-id');
+                    const cartItem = cart.find(item => item.id === productId);
+                    const product = products.find(p => p.id === productId);
+                    
+                    if (cartItem.quantity < product.stock) {
+                        cartItem.quantity++;
+                        updateCart();
+                    } else {
+                        alert(`Only ${product.stock} items available in stock!`);
+                    }
+                });
+            });
+            
+            document.querySelectorAll('.decrease-qty').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const productId = e.currentTarget.getAttribute('data-id');
+                    const cartItem = cart.find(item => item.id === productId);
+                    
+                    if (cartItem.quantity > 1) {
+                        cartItem.quantity--;
+                        updateCart();
+                    } else {
+                        cart = cart.filter(item => item.id !== productId);
+                        updateCart();
+                    }
+                });
+            });
+            
+            document.querySelectorAll('.remove-item').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const productId = e.currentTarget.getAttribute('data-id');
+                    cart = cart.filter(item => item.id !== productId);
+                    updateCart();
+                });
+            });
+        }
+
+        // Toggle cart sidebar
+        function toggleCart() {
+            cartSidebar.classList.toggle('translate-x-full');
+            cartOverlay.classList.toggle('hidden');
+            
+            if (!cartSidebar.classList.contains('translate-x-full')) {
+                updateCartUI();
+            }
+        }
+
+        // Handle checkout
+        function handleCheckout() {
+            if (cart.length === 0) {
+                alert('Your cart is empty!');
+                return;
+            }
+            
+            // In a real app, you would process the payment here
+            alert(`Order placed successfully! Total: ${cartSubtotal.textContent}`);
+            
+            // Deduct quantities from stock (in a real app, you'd want to verify stock hasn't changed since adding to cart)
+            const updates = {};
+            cart.forEach(item => {
+                const product = products.find(p => p.id === item.id);
+                if (product) {
+                    updates[`/products/${item.id}/stock`] = product.stock - item.quantity;
+                }
+            });
+            
+            database.ref().update(updates)
+                .then(() => {
+                    // Clear cart
+                    cart = [];
+                    updateCart();
+                    toggleCart();
+                })
+                .catch(error => {
+                    console.error('Error updating stock:', error);
+                    alert('There was an error processing your order. Please try again.');
+                });
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
