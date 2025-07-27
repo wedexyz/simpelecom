@@ -12,6 +12,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-colors-vivid.css">
+<link rel="stylesheet" href="https://www.w3schools.com/lib/w3-colors-2021.css">
     <style>
         .animate-card:hover {
             transform: translateY(-5px);
@@ -46,6 +48,8 @@
         }
     </style>
 </head>
+
+
 <body class="bg-gray-50">
     <div class="min-h-screen flex flex-col" id="app">
         <!-- Navigation -->
@@ -214,15 +218,23 @@
         <div id="cartSidebar" class="fixed inset-y-0 right-0 w-full md:w-96 bg-white shadow-lg transform translate-x-full transition-transform duration-300 ease-in-out z-40 overflow-y-auto custom-scroll">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xl font-semibold">Your Cart</h3>
+                    <h3 class="text-xl font-semibold">Mohon 
+                         masukan Nama dan alamat</h3>
+                    
+
                     <button id="closeCartBtn" class="text-gray-500 hover:text-gray-700">
                         <i class="fas fa-times text-xl"></i>
                     </button>
+                    
                 </div>
                 <div id="cartItems" class="space-y-4">
                     <!-- Cart items will be loaded here dynamically -->
                     <p class="text-gray-500 text-center py-8">Your cart is empty</p>
                 </div>
+                <input type="text" id="nama" placeholder="Nama">
+                    <hr>
+                    <input type="text" id="alamat" placeholder="Alamat">
+                
                 <div class="mt-6 border-t pt-4">
                     <div class="flex justify-between mb-2">
                         <span class="font-medium">Subtotal:</span>
@@ -231,6 +243,7 @@
                     <button id="checkoutBtn" class="w-full px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition duration-300 mt-4">
                         Checkout
                     </button>
+                    
                 </div>
             </div>
         </div>
@@ -278,6 +291,9 @@
   measurementId: "G-RJQB5J2990"
         };
 
+
+
+       
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
@@ -434,8 +450,12 @@
                     </td>
                 `;
                 adminProductsList.appendChild(tr);
+           
+ 
+
             });
-            
+                 
+
             // Add event listeners to edit and delete buttons
             document.querySelectorAll('.edit-product-btn').forEach(button => {
                 button.addEventListener('click', (e) => {
@@ -513,6 +533,7 @@
                 database.ref('products/' + id).update(productData)
                     .then(() => {
                         alert('Product updated successfully!');
+
                         resetProductForm();
                     })
                     .catch(error => {
@@ -659,7 +680,7 @@
             } else {
                 cartItems.innerHTML = '';
                 let subtotal = 0;
-                
+                i=0;
                 cart.forEach(item => {
                     const cartItem = document.createElement('div');
                     cartItem.className = 'flex items-center border-b pb-4';
@@ -685,11 +706,13 @@
                         </div>
                     `;
                     cartItems.appendChild(cartItem);
-                    
-                    subtotal += item.price * item.quantity;
+                     subtotal += item.price * item.quantity;
+                   
                 });
                 
                 cartSubtotal.textContent = `IDR ${subtotal.toLocaleString()}`;
+                //kirim = $('#kirim')
+                //kirim.append(  item.name +" Harga "+"Rp. "+ subtotal.toLocaleString()+'%0a' );
                 
                 // Update cart count badge
                 const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -703,8 +726,8 @@
                     const productId = e.currentTarget.getAttribute('data-id');
                     const cartItem = cart.find(item => item.id === productId);
                     const product = products.find(p => p.id === productId);
-                    
-                    if (cartItem.quantity < product.stock) {
+                   
+                     if (cartItem.quantity < product.stock) {
                         cartItem.quantity++;
                         updateCart();
                     } else {
@@ -747,16 +770,33 @@
             }
         }
 
+
+     
         // Handle checkout
         function handleCheckout() {
             if (cart.length === 0) {
                 alert('Your cart is empty!');
                 return;
             }
-            
+                    // send_handle()
             // In a real app, you would process the payment here
             alert(`Order placed successfully! Total: ${cartSubtotal.textContent}`);
-            
+                  console.log(cartSubtotal.textContent+""+cartItems.textContent  )
+                   
+                  //kirim = document.getElementById('kirim');
+                  //kirim.append( cartSubtotal.textContent+""+cartItems.textContent );
+                  const num = '+6282247750606';
+
+	const name = document.getElementById('nama').value;
+	const alamat = document.getElementById('alamat').value;
+    const barang = cartItems.textContent;
+    const total = cartSubtotal.textContent;
+    
+     
+	const win = window.open(`https://wa.me/${num}?text=Saya%20Order%20Barang%20Atas%20Nama%20%0aNama:%20${name}'%0aAlamat:%20'${alamat}'%0a '${barang}'Total: '${total}`,'_blank');
+	
+	win.focus();
+                
             // Deduct quantities from stock (in a real app, you'd want to verify stock hasn't changed since adding to cart)
             const updates = {};
             cart.forEach(item => {
